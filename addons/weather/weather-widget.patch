@@ -216,10 +216,10 @@ index 81b8cdc3..1f36bedf 100644
                      show(result);
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java
 new file mode 100644
-index 00000000..fe4f5c80
+index 00000000..f4847601
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,105 @@
 +package io.github.sumyabazar1.weather;
 +
 +import android.app.job.JobInfo;
@@ -228,6 +228,8 @@ index 00000000..fe4f5c80
 +import android.content.Context;
 +import android.content.SharedPreferences;
 +import android.net.Uri;
++
++import java.util.concurrent.atomic.AtomicBoolean;
 +
 +/**
 + * The last reading, kept for the home screen's weather widget: the launcher has no internet permission, so this app
@@ -257,8 +259,42 @@ index 00000000..fe4f5c80
 +        c.getContentResolver().notifyChange(URI, null);
 +    }
 +
++    /**
++     * How old a reading may be when Home asks for it before it is fetched again. Open-Meteo's "current" values change
++     * every 15 minutes, so fetching more often returns the same data.
++     */
++    static final long FRESH_MS = 15 * 60_000L;
++    private static final AtomicBoolean fetching = new AtomicBoolean();
++
 +    static boolean stale(Context c) {
-+        return System.currentTimeMillis() - prefs(c).getLong("updated", 0) > Forecast.REFRESH_MS;
++        return System.currentTimeMillis() - prefs(c).getLong("updated", 0) > FRESH_MS;
++    }
++
++    /**
++     * Fetches now, on a thread of this process, when the reading is older than {@link #FRESH_MS}: the launcher queries
++     * the provider every time Home comes back, and its content observer redraws the widget when {@link #save} lands.
++     * One fetch at a time; the 30-minute job stays as the background refresh.
++     */
++    static void refreshIfStale(Context c) {
++        if (!stale(c) || !fetching.compareAndSet(false, true)) return;
++        Context app = c.getApplicationContext();
++        SharedPreferences place = app.getSharedPreferences("place", Context.MODE_PRIVATE);
++        if (!place.contains("name")) {
++            fetching.set(false);
++            return;
++        }
++        double lat = Double.longBitsToDouble(place.getLong("lat", 0));
++        double lon = Double.longBitsToDouble(place.getLong("lon", 0));
++        new Thread(() -> {
++            try {
++                Phrases.refresh(app);
++                save(app, Forecast.fetch(lat, lon, Forecast.MIN_DAYS));
++            } catch (Exception e) {
++                refreshSoon(app);   // offline or the service failed: the job retries once the network is back
++            } finally {
++                fetching.set(false);
++            }
++        }, "weather-on-home").start();
 +    }
 +
 +    /** A refresh every 30 minutes while the network is up, kept across reboots. */
@@ -291,7 +327,7 @@ index 00000000..fe4f5c80
 +}
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
 new file mode 100644
-index 00000000..ad76000b
+index 00000000..7f7f5fcf
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
 @@ -0,0 +1,68 @@
@@ -327,7 +363,7 @@ index 00000000..ad76000b
 +        WidgetData.schedule(c);
 +        SharedPreferences place = c.getSharedPreferences("place", Context.MODE_PRIVATE);
 +        if (!place.contains("name")) return cursor;
-+        if (WidgetData.stale(c)) WidgetData.refreshSoon(c);
++        WidgetData.refreshIfStale(c);
 +        SharedPreferences w = WidgetData.prefs(c);
 +        if (!w.contains("updated")) return cursor;
 +        boolean f = c.getSharedPreferences("options", Context.MODE_PRIVATE).getBoolean("fahrenheit",
