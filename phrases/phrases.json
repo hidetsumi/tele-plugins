@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-11-23T19:45:00Z",
+  "updatedAt": "2026-11-23T19:49:07Z",
   "categories": [
     {
       "id": "extreme_heat",
@@ -36,6 +36,11 @@
         },
         {
           "text": "Ni el ventilador te salva hoy",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Ni la sombra te rescata hoy",
           "source": "ai",
           "addedAt": "2026-11-23"
         }
@@ -78,6 +83,11 @@
           "text": "El subte es un sauna, aguantá",
           "source": "ai",
           "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Está para pelar la pelopincho",
+          "source": "ai",
+          "addedAt": "2026-11-23"
         }
       ]
     },
@@ -116,6 +126,11 @@
         },
         {
           "text": "Zarpado día para cortar el laburo",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Salí en remera y shorts, de una",
           "source": "ai",
           "addedAt": "2026-11-23"
         }
@@ -158,6 +173,11 @@
           "text": "Salí a patear que está hermoso",
           "source": "ai",
           "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Clima ideal para andar en bici",
+          "source": "ai",
+          "addedAt": "2026-11-23"
         }
       ]
     },
@@ -196,6 +216,11 @@
         },
         {
           "text": "Pinta ese cafecito para levantar",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Climatito de buzo y mate amargo",
           "source": "ai",
           "addedAt": "2026-11-23"
         }
@@ -238,6 +263,11 @@
           "text": "Se te entumecen las patas, posta",
           "source": "ai",
           "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Salí en camperón o sufrís mal",
+          "source": "ai",
+          "addedAt": "2026-11-23"
         }
       ]
     },
@@ -275,6 +305,11 @@
         },
         {
           "text": "Posta que parece la Antártida esto",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "No hay campera que alcance hoy",
           "source": "ai",
           "addedAt": "2026-11-23"
         }
@@ -317,6 +352,11 @@
           "text": "Se inundan las calles, ojo al charco",
           "source": "ai",
           "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Caen chuzas de punta, guardate",
+          "source": "ai",
+          "addedAt": "2026-11-23"
         }
       ]
     },
@@ -352,6 +392,11 @@
           "text": "Alta tormenta, guardá el coche ya",
           "source": "ai",
           "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Tremendos rayos, quedate adentro",
+          "source": "ai",
+          "addedAt": "2026-11-23"
         }
       ]
     },
@@ -380,6 +425,11 @@
         },
         {
           "text": "Cayó alto copito, caos en la ciudad",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Cayó aguanieve, insólito posta",
           "source": "ai",
           "addedAt": "2026-11-23"
         }
