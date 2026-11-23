@@ -7,6 +7,7 @@ DreamOS template (photo wallpaper, glass dock, sounds) plus the additions made h
 |---|---|
 | `home_widgets` | A row of widgets under the clock: weather, connected headphones (with battery when reported) and devices on the HDMI ports. Each one hides itself when it has nothing to show. |
 | `headphones_button` | A fixed headphones button next to Settings. It opens the TV's Bluetooth accessories, where Connect is one press away; Android does not let apps connect headphones themselves. |
+| (with `home_widgets`) | The weather widget is selectable: Up from the left of the dock reaches it, OK opens a day card with the next hours (Left and Right move between them, each with temperature, chance of rain and its own phrase), today's low and high, and when it next rains. Back or Down closes it. |
 | `weather_phrases` | Shows the weather as feels-like temperature plus a phrase ("30° Hace un re lorca"). Phrases come from the weather add-on, which downloads [`phrases/`](../phrases/); offline, the launcher uses its built-in phrases. |
 
 The launcher still has no internet permission. The only new permission is `BLUETOOTH_CONNECT`, granted over ADB.

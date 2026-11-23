@@ -9,6 +9,9 @@ What it adds:
   launcher through a read-only ContentProvider (`io.github.sumyabazar1.weather.widget`). The launcher has no internet.
 - **Background refresh**: a JobScheduler job refreshes it every 30 minutes while there is a network, without opening
   the app.
+- **Hourly forecast**: each refresh also keeps 7 days of hourly forecast from Open-Meteo. The provider's
+  `forecast` column summarizes it for the launcher's day card: the next hours, today's low and high, and the next
+  rain (the first hour with rain or drizzle, or at least 0.2 mm).
 - **Phrases**: each refresh also downloads [`phrases/phrases.json`](../../phrases/) and picks the phrase for the
   current conditions.
 

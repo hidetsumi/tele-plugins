@@ -30,12 +30,154 @@ index f713c336..747e221f 100644
 +            android:permission="android.permission.BIND_JOB_SERVICE" />
      </application>
  </manifest>
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Hourly.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Hourly.java
+new file mode 100644
+index 00000000..1d6797d1
+--- /dev/null
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Hourly.java
+@@ -0,0 +1,136 @@
++package io.github.sumyabazar1.weather;
++
++import android.content.Context;
++import android.content.SharedPreferences;
++
++import org.json.JSONArray;
++import org.json.JSONObject;
++
++import java.io.ByteArrayOutputStream;
++import java.io.InputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.nio.charset.StandardCharsets;
++import java.time.LocalDateTime;
++import java.time.ZoneId;
++import java.time.format.DateTimeFormatter;
++import java.util.Locale;
++
++/**
++ * The hourly forecast for the launcher's day card: the next hours, today's low and high, and when it next rains.
++ * Fetched with each widget refresh (Open-Meteo, ICON model, 7 days) and kept as the raw reply; the summary is worked
++ * out when the launcher asks, so "now" is always the current hour.
++ */
++final class Hourly {
++    private static final int TIMEOUT_MS = 8_000;
++    private static final int DAYS = 7;
++    /** Hours of the card: now, then every SLOT_STEP hours. */
++    private static final int SLOTS = 7, SLOT_STEP = 3;
++
++    private Hourly() { }
++
++    /** Downloads and keeps the forecast. Never throws: a failed download keeps the last copy. */
++    static void refresh(Context c, double lat, double lon) {
++        String url = String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
++                + "&models=icon_seamless&hourly=temperature_2m,apparent_temperature,precipitation_probability,"
++                + "precipitation,weather_code,is_day&forecast_days=%d&timezone=auto", lat, lon, DAYS);
++        try {
++            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
++            conn.setConnectTimeout(TIMEOUT_MS);
++            conn.setReadTimeout(TIMEOUT_MS);
++            try (InputStream in = conn.getInputStream()) {
++                ByteArrayOutputStream out = new ByteArrayOutputStream();
++                byte[] buf = new byte[8192];
++                for (int n; (n = in.read(buf)) != -1; ) out.write(buf, 0, n);
++                String json = new String(out.toByteArray(), StandardCharsets.UTF_8);
++                JSONObject root = new JSONObject(json);
++                root.getJSONObject("hourly").getJSONArray("time");
++                WidgetData.prefs(c).edit().putString("hourly", root.getJSONObject("hourly").toString())
++                        .putString("hourly_zone", root.optString("timezone", "UTC")).apply();
++            } finally {
++                conn.disconnect();
++            }
++        } catch (Exception ignored) {
++            // offline or the service is down: the last copy stays
++        }
++    }
++
++    private static boolean rains(int code, double mm) {
++        return code >= 51 || mm >= 0.2;
++    }
++
++    /**
++     * The card's data as JSON: {"low","high","hours":[{"time","temp","feels","code","day","pop","phrase"}],
++     * "nextRain":{"time","pop","mm"} or null, "horizonDays"}. Temperatures in the owner's unit. Null when there is no
++     * forecast yet.
++     */
++    static String summary(SharedPreferences widget, boolean fahrenheit) {
++        String raw = widget.getString("hourly", null);
++        if (raw == null) return null;
++        try {
++            JSONObject h = new JSONObject(raw);
++            JSONArray time = h.getJSONArray("time"), temp = h.getJSONArray("temperature_2m"),
++                    feels = h.getJSONArray("apparent_temperature"), pop = h.getJSONArray("precipitation_probability"),
++                    mm = h.getJSONArray("precipitation"), code = h.getJSONArray("weather_code"),
++                    day = h.getJSONArray("is_day");
++            ZoneId zone = ZoneId.of(widget.getString("hourly_zone", "UTC"));
++            String now = LocalDateTime.now(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH':00'"));
++            int start = -1;
++            for (int i = 0; i < time.length(); i++) {
++                if (time.getString(i).compareTo(now) >= 0) {
++                    start = i;
++                    break;
++                }
++            }
++            if (start < 0) return null;
++
++            String today = now.substring(0, 10);
++            double low = Double.MAX_VALUE, high = -Double.MAX_VALUE;
++            for (int i = 0; i < time.length(); i++) {
++                if (!time.getString(i).startsWith(today)) continue;
++                low = Math.min(low, temp.getDouble(i));
++                high = Math.max(high, temp.getDouble(i));
++            }
++
++            JSONArray hours = new JSONArray();
++            for (int s = 0; s < SLOTS; s++) {
++                int i = start + s * SLOT_STEP;
++                if (i >= time.length()) break;
++                int f = Forecast.degrees(feels.getDouble(i), false);
++                int wc = code.getInt(i);
++                hours.put(new JSONObject()
++                        .put("time", time.getString(i))
++                        .put("temp", Forecast.degrees(temp.getDouble(i), fahrenheit))
++                        .put("feels", Forecast.degrees(feels.getDouble(i), fahrenheit))
++                        .put("code", wc)
++                        .put("day", day.optInt(i, 1) == 1)
++                        .put("pop", pop.optInt(i, 0))
++                        .put("phrase", Phrases.pickAt(widget, f, wc, time.getString(i))));
++            }
++
++            JSONObject nextRain = null;
++            for (int i = start; i < time.length(); i++) {
++                if (!rains(code.getInt(i), mm.optDouble(i, 0))) continue;
++                double total = 0;
++                int maxPop = 0;
++                for (int j = i; j < time.length() && rains(code.getInt(j), mm.optDouble(j, 0)); j++) {
++                    total += mm.optDouble(j, 0);
++                    maxPop = Math.max(maxPop, pop.optInt(j, 0));
++                }
++                nextRain = new JSONObject().put("time", time.getString(i)).put("pop", maxPop)
++                        .put("mm", Math.round(total * 10) / 10.0);
++                break;
++            }
++
++            JSONObject out = new JSONObject()
++                    .put("low", Forecast.degrees(low, fahrenheit))
++                    .put("high", Forecast.degrees(high, fahrenheit))
++                    .put("hours", hours)
++                    .put("horizonDays", DAYS);
++            out.put("nextRain", nextRain == null ? JSONObject.NULL : nextRain);
++            return out.toString();
++        } catch (Exception e) {
++            return null;
++        }
++    }
++}
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
 new file mode 100644
-index 00000000..0027e6e7
+index 00000000..ca6064aa
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,133 @@
 +package io.github.sumyabazar1.weather;
 +
 +import android.content.Context;
@@ -137,15 +279,32 @@ index 00000000..0027e6e7
 +
 +    /** One phrase from the downloaded list for this reading, the same one for the whole hour; null when none. */
 +    static String pick(SharedPreferences widget, int feelsC, int code) {
++        Calendar now = Calendar.getInstance();
++        return pick(widget, feelsC, code, now.get(Calendar.DAY_OF_YEAR) * 24 + now.get(Calendar.HOUR_OF_DAY));
++    }
++
++    /**
++     * The phrase for a forecast hour ("2026-11-23T21:00"), chosen the same way as for "now" so an hour keeps its
++     * phrase; "" when there is none.
++     */
++    static String pickAt(SharedPreferences widget, int feelsC, int code, String isoHour) {
++        try {
++            java.time.LocalDateTime t = java.time.LocalDateTime.parse(isoHour);
++            String p = pick(widget, feelsC, code, t.getDayOfYear() * 24 + t.getHour());
++            return p == null ? "" : p;
++        } catch (Exception e) {
++            return "";
++        }
++    }
++
++    private static String pick(SharedPreferences widget, int feelsC, int code, int slot) {
 +        String json = widget.getString(PREF, null);
 +        if (json == null) return null;
 +        try {
 +            JSONObject c = category(new JSONObject(json).getJSONArray("categories"), feelsC, code);
 +            JSONArray list = c == null ? null : c.optJSONArray("phrases");
 +            if (list == null || list.length() == 0) return null;
-+            Calendar now = Calendar.getInstance();
-+            int at = (now.get(Calendar.DAY_OF_YEAR) * 24 + now.get(Calendar.HOUR_OF_DAY)) % list.length();
-+            String text = list.getJSONObject(at).optString("text", "").trim();
++            String text = list.getJSONObject(Math.floorMod(slot, list.length())).optString("text", "").trim();
 +            return text.isEmpty() ? null : text;
 +        } catch (Exception e) {
 +            return null;
@@ -154,10 +313,10 @@ index 00000000..0027e6e7
 +}
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java
 new file mode 100644
-index 00000000..87e6bc6b
+index 00000000..8cb0483b
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,39 @@
 +package io.github.sumyabazar1.weather;
 +
 +import android.app.job.JobParameters;
@@ -177,6 +336,7 @@ index 00000000..87e6bc6b
 +        worker = new Thread(() -> {
 +            boolean ok = false;
 +            Phrases.refresh(this);
++            Hourly.refresh(this, lat, lon);
 +            try {
 +                WidgetData.save(this, Forecast.fetch(lat, lon, Forecast.MIN_DAYS));
 +                ok = true;
@@ -197,14 +357,15 @@ index 00000000..87e6bc6b
 +    }
 +}
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
-index 81b8cdc3..1f36bedf 100644
+index 81b8cdc3..7ba15b6a 100644
 --- a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
-@@ -112,10 +112,13 @@ public final class WeatherActivity extends Activity {
+@@ -112,10 +112,14 @@ public final class WeatherActivity extends Activity {
              } catch (Exception e) {
                  report = null;
              }
 +            Phrases.refresh(this);
++            Hourly.refresh(this, lat, lon);
              Forecast.Report result = report;
              main.post(() -> {
                  if (isDestroyed() || !resumed || request != requestId) return;
@@ -327,10 +488,10 @@ index 00000000..f4847601
 +}
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
 new file mode 100644
-index 00000000..7f7f5fcf
+index 00000000..c7d23a4f
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,69 @@
 +package io.github.sumyabazar1.weather;
 +
 +import android.content.ContentProvider;
@@ -344,11 +505,12 @@ index 00000000..7f7f5fcf
 +/**
 + * Read-only: the stored reading for the launcher's home screen widget, in the unit and language the owner chose here.
 + * Columns: temp (whole degrees), unit ("C" or "F"), sky (words), code (WMO), day (1 or 0), place, updated (ms),
-+ * feels (whole degrees, the feels-like temperature), phrase (from the downloaded list in {@link Phrases}, or null).
++ * feels (whole degrees, the feels-like temperature), phrase (from the downloaded list in {@link Phrases}, or null),
++ * forecast (JSON from {@link Hourly#summary}: next hours, today's low and high, next rain; or null).
 + * Empty while no city is chosen or nothing has been fetched yet.
 + */
 +public final class WidgetProvider extends ContentProvider {
-+    private static final String[] COLUMNS = {"temp", "unit", "sky", "code", "day", "place", "updated", "feels", "phrase"};
++    private static final String[] COLUMNS = {"temp", "unit", "sky", "code", "day", "place", "updated", "feels", "phrase", "forecast"};
 +
 +    @Override
 +    public boolean onCreate() {
@@ -374,7 +536,7 @@ index 00000000..7f7f5fcf
 +        double feelsC = Double.longBitsToDouble(w.getLong("feelsC", w.getLong("tempC", 0)));
 +        cursor.addRow(new Object[]{Forecast.degrees(tempC, f), f ? "F" : "C", c.getString(Forecast.sky(code, day)),
 +                code, day ? 1 : 0, place.getString("name", ""), w.getLong("updated", 0),
-+                Forecast.degrees(feelsC, f), Phrases.pick(w, (int) Math.round(feelsC), code)});
++                Forecast.degrees(feelsC, f), Phrases.pick(w, (int) Math.round(feelsC), code), Hourly.summary(w, f)});
 +        cursor.setNotificationUri(c.getContentResolver(), WidgetData.URI);
 +        return cursor;
 +    }
