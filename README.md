@@ -1,32 +1,38 @@
 # tele-plugins
 
-Plugins y ajustes para una tele Android TV / Google TV (TCL G08) con el launcher DreamOS de
+Plugins and settings for an Android TV / Google TV set (TCL G08) running the DreamOS home screen from
 [cleanyourtv](https://github.com/Gathin23/cleanyourtv).
 
-| Sección | Qué hay |
+| Folder | Contents |
 |---|---|
-| [`frases/`](frases/) | Las frases del widget del clima ("30° Hace un re lorca"). La tele las descarga de acá. |
-| [`launcher/`](launcher/) | DreamOS con widgets: clima, auriculares, fuentes HDMI, botón fijo de auriculares y frases. |
-| [`complementos/`](complementos/) | Apps chicas que se suman a DreamOS. Hoy: [`clima`](complementos/clima/). |
-| [`docs/`](docs/) | Notas de la tele y cómo volver todo atrás. |
-| [`scripts/`](scripts/) | Lo que usan las automatizaciones de GitHub. |
+| [`phrases/`](phrases/) | Weather widget phrases ("30° Hace un re lorca") and the AI style guide. The TV downloads them from here. |
+| [`launcher/`](launcher/) | DreamOS with home screen widgets: weather, headphones, HDMI devices, a headphones button and phrases. |
+| [`addons/`](addons/) | Small apps that extend DreamOS. Currently [`weather`](addons/weather/). |
+| [`docs/`](docs/) | Notes on this TV and how to undo every change. |
+| [`scripts/`](scripts/) | Code used by the GitHub Actions. |
 
-## Agregar una frase
+## Adding a phrase
 
-1. **Issues → New issue → Nueva frase**.
-2. Elegí el rango, escribí la frase (hasta 40 caracteres) y mandala.
-3. Una GitHub Action la suma a `frases/frases.json` y cierra el issue. La tele la muestra en menos de 30 minutos.
+1. Open **Issues → New issue → New phrase**.
+2. Pick a category, write the phrase (up to 40 characters) and submit.
+3. The **Add phrase** action adds it to `phrases/phrases.json` and closes the issue. The TV shows it within 30 minutes.
 
-Solo se aplican las frases que manda el dueño del repo. También se puede editar `frases/frases.json` a mano.
+Only issues opened by the repository owner are applied. `phrases/phrases.json` can also be edited by hand.
 
-## Frases con IA
+## AI-generated phrases
 
-Todos los lunes, la Action **Frases nuevas con IA** le pide frases nuevas a Google Gemini (nivel gratuito) y
-las agrega solas, marcadas `"origen": "ia"`. Necesita una clave gratis de [Google AI Studio](https://aistudio.google.com/apikey)
-guardada como secreto `GEMINI_API_KEY` (Settings → Secrets and variables → Actions); sin ella, la Action no hace nada. Cuando un rango pasa las 40 frases, se borran las de IA más viejas; las
-escritas a mano nunca se borran. Se puede correr a mano desde **Actions → Frases nuevas con IA → Run workflow**.
+Every Monday the **AI phrases** action asks Google Gemini (free tier) for new phrases and adds them with
+`"source": "ai"`. The instructions it follows are in [`phrases/style-guide.md`](phrases/style-guide.md), and the reply
+must match a fixed JSON schema. The action needs a free key from [Google AI Studio](https://aistudio.google.com/apikey)
+stored as the `GEMINI_API_KEY` repository secret (Settings → Secrets and variables → Actions); without it the action
+does nothing. It can also be run by hand from **Actions → AI phrases → Run workflow**.
 
-## Licencia
+## Cost
 
-MIT. El código del launcher y de los complementos deriva de [cleanyourtv](https://github.com/Gathin23/cleanyourtv)
-(MIT, © 2026 Gathin) y de sus complementos (cada uno con su autor, ver los README).
+Everything here is free: GitHub Actions and Issues on a public repository, `raw.githubusercontent.com` for the
+download, and Gemini's free tier for the AI step.
+
+## License
+
+MIT. The launcher and add-on code derives from [cleanyourtv](https://github.com/Gathin23/cleanyourtv)
+(MIT, © 2026 Gathin) and its add-ons (each with its own author; see their READMEs).

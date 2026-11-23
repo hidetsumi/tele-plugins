@@ -32,10 +32,10 @@ index f713c336..747e221f 100644
  </manifest>
 diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
 new file mode 100644
-index 00000000..aa1fc6cb
+index 00000000..0027e6e7
 --- /dev/null
 +++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,116 @@
 +package io.github.sumyabazar1.weather;
 +
 +import android.content.Context;
@@ -53,20 +53,23 @@ index 00000000..aa1fc6cb
 +
 +/**
 + * The home screen widget's phrases ("30° Hace un re lorca"), kept in a public GitHub repository so new ones arrive
-+ * without touching the TV. Downloaded with each weather refresh; the last good copy is kept, and when there has never
-+ * been one the launcher uses its own built-in phrases.
++ * without touching the TV (github.com/hidetsumi/tele-plugins, phrases/phrases.json, schema version 2). Each category
++ * carries its own condition: a feels-like range in °C, or a weather type with a priority. Downloaded with each weather
++ * refresh; the last good copy is kept, and when there has never been one the launcher uses its built-in phrases.
 + */
 +final class Phrases {
-+    static final String URL_FRASES =
-+            "https://raw.githubusercontent.com/hidetsumi/tele-plugins/main/frases/frases.json";
++    static final String URL_PHRASES =
++            "https://raw.githubusercontent.com/hidetsumi/tele-plugins/main/phrases/phrases.json";
++    private static final int SCHEMA_VERSION = 2;
 +    private static final int TIMEOUT_MS = 8_000;
++    private static final String PREF = "phrases_v2";
 +
 +    private Phrases() { }
 +
-+    /** Downloads the list and keeps it when it parses. Never throws: a failed download keeps the last copy. */
++    /** Downloads the list and keeps it when it is a version this code reads. A failed download keeps the last copy. */
 +    static void refresh(Context c) {
 +        try {
-+            HttpURLConnection conn = (HttpURLConnection) new URL(URL_FRASES).openConnection();
++            HttpURLConnection conn = (HttpURLConnection) new URL(URL_PHRASES).openConnection();
 +            conn.setConnectTimeout(TIMEOUT_MS);
 +            conn.setReadTimeout(TIMEOUT_MS);
 +            conn.setUseCaches(false);
@@ -78,8 +81,10 @@ index 00000000..aa1fc6cb
 +                    if (out.size() > 512 * 1024) return;   // not what we expect; keep the last copy
 +                }
 +                String json = new String(out.toByteArray(), StandardCharsets.UTF_8);
-+                new JSONObject(json).getJSONObject("rangos");   // parses, or throws and keeps the old copy
-+                WidgetData.prefs(c).edit().putString("frases", json).apply();
++                JSONObject root = new JSONObject(json);
++                if (root.optInt("schemaVersion") != SCHEMA_VERSION) return;
++                root.getJSONArray("categories");
++                WidgetData.prefs(c).edit().putString(PREF, json).apply();
 +            } finally {
 +                conn.disconnect();
 +            }
@@ -88,30 +93,59 @@ index 00000000..aa1fc6cb
 +        }
 +    }
 +
-+    /** The range a reading falls in, by the same rules as the launcher's built-in phrases. */
-+    static String range(int feelsC, int code) {
-+        if (code >= 95) return "Tormenta";
-+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "Nieve";
-+        if (code >= 51) return "Lluvia";
-+        if (feelsC >= 35) return "35° o más";
-+        if (feelsC >= 30) return "30° a 34°";
-+        if (feelsC >= 25) return "25° a 29°";
-+        if (feelsC >= 19) return "19° a 24°";
-+        if (feelsC >= 13) return "13° a 18°";
-+        if (feelsC >= 7) return "7° a 12°";
-+        return "6° o menos";
++    /** The weather type of a WMO code, as the file names it; null for none (clear or cloudy). */
++    static String weatherType(int code) {
++        if (code >= 95) return "thunderstorm";
++        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "snow";
++        if (code >= 51) return "rain";
++        return null;
++    }
++
++    /**
++     * The category for a reading: the highest-priority category whose weather matches, else the first whose
++     * feels-like range holds the temperature. Null when none does.
++     */
++    static JSONObject category(JSONArray categories, int feelsC, int code) {
++        String weather = weatherType(code);
++        JSONObject best = null;
++        int bestPriority = Integer.MIN_VALUE;
++        if (weather != null) {
++            for (int i = 0; i < categories.length(); i++) {
++                JSONObject c = categories.optJSONObject(i);
++                if (c == null) continue;
++                JSONObject cond = c.optJSONObject("condition");
++                if (cond == null || !weather.equals(cond.optString("weather"))) continue;
++                int priority = c.optInt("priority", 0);
++                if (priority > bestPriority) {
++                    best = c;
++                    bestPriority = priority;
++                }
++            }
++            if (best != null) return best;
++        }
++        for (int i = 0; i < categories.length(); i++) {
++            JSONObject c = categories.optJSONObject(i);
++            if (c == null) continue;
++            JSONObject cond = c.optJSONObject("condition");
++            if (cond == null || cond.has("weather")) continue;
++            if (cond.has("feelsLikeMin") && feelsC < cond.optInt("feelsLikeMin")) continue;
++            if (cond.has("feelsLikeMax") && feelsC > cond.optInt("feelsLikeMax")) continue;
++            return c;
++        }
++        return null;
 +    }
 +
 +    /** One phrase from the downloaded list for this reading, the same one for the whole hour; null when none. */
 +    static String pick(SharedPreferences widget, int feelsC, int code) {
-+        String json = widget.getString("frases", null);
++        String json = widget.getString(PREF, null);
 +        if (json == null) return null;
 +        try {
-+            JSONArray list = new JSONObject(json).getJSONObject("rangos").optJSONArray(range(feelsC, code));
++            JSONObject c = category(new JSONObject(json).getJSONArray("categories"), feelsC, code);
++            JSONArray list = c == null ? null : c.optJSONArray("phrases");
 +            if (list == null || list.length() == 0) return null;
 +            Calendar now = Calendar.getInstance();
 +            int at = (now.get(Calendar.DAY_OF_YEAR) * 24 + now.get(Calendar.HOUR_OF_DAY)) % list.length();
-+            String text = list.getJSONObject(at).optString("texto", "").trim();
++            String text = list.getJSONObject(at).optString("text", "").trim();
 +            return text.isEmpty() ? null : text;
 +        } catch (Exception e) {
 +            return null;

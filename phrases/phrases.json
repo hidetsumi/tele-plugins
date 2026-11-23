@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-11-23T19:45:00Z",
+  "categories": [
+    {
+      "id": "extreme_heat",
+      "label": "Feels like 35 °C or more",
+      "condition": {
+        "feelsLikeMin": 35
+      },
+      "phrases": [
+        {
+          "text": "Te derretís como helado en la vereda",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Un infierno, hermano",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Calor de locos, ni salgas",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Hace un calor que mata",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Te cocinás en el subte, un horror",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Ni el ventilador te salva hoy",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "hot",
+      "label": "Feels like 30–34 °C",
+      "condition": {
+        "feelsLikeMin": 30,
+        "feelsLikeMax": 34
+      },
+      "phrases": [
+        {
+          "text": "Hace un re lorca",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Lorca total, prendé el aire",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Pegajoso mal, ni te muevas",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Calor heavy, birra urgente",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "El asfalto te derrite la zapatilla",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "El subte es un sauna, aguantá",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "warm",
+      "label": "Feels like 25–29 °C",
+      "condition": {
+        "feelsLikeMin": 25,
+        "feelsLikeMax": 29
+      },
+      "phrases": [
+        {
+          "text": "Lindo calorcito, está para pileta",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Remerita y a la calle",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Está para una birra en la vereda",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Calorcito rico, che",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Pintan esos tererés en el parque",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Zarpado día para cortar el laburo",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "mild",
+      "label": "Feels like 19–24 °C",
+      "condition": {
+        "feelsLikeMin": 19,
+        "feelsLikeMax": 24
+      },
+      "phrases": [
+        {
+          "text": "Está joya, ni frío ni calor",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Clima de mate en la plaza",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Un día bárbaro, ni te quejes",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Ideal, aprovechá",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Posta que este clima es una manteca",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Salí a patear que está hermoso",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "cool",
+      "label": "Feels like 13–18 °C",
+      "condition": {
+        "feelsLikeMin": 13,
+        "feelsLikeMax": 18
+      },
+      "phrases": [
+        {
+          "text": "Fresquito, llevate un buzo",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Está para camperita liviana",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Fresco pero se banca",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Refresca, no te hagas el canchero",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Ponete la campera y no jodas",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Pinta ese cafecito para levantar",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "cold",
+      "label": "Feels like 7–12 °C",
+      "condition": {
+        "feelsLikeMin": 7,
+        "feelsLikeMax": 12
+      },
+      "phrases": [
+        {
+          "text": "Hace frío, che",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Está para guiso y frazada",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Re fresco, abrigate bien",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Frío de cuarta, mate caliente ya",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Te congelás en la parada del bondi",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Se te entumecen las patas, posta",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "freezing",
+      "label": "Feels like 6 °C or less",
+      "condition": {
+        "feelsLikeMax": 6
+      },
+      "phrases": [
+        {
+          "text": "Un frío que te parte al medio",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Pingüino total, abrigate",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Frío de morirse, no salgas",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Helado mal, sacá la estufa",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Te congelás hasta las ideas, che",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Posta que parece la Antártida esto",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "rain",
+      "label": "Rain or drizzle",
+      "condition": {
+        "weather": "rain"
+      },
+      "priority": 1,
+      "phrases": [
+        {
+          "text": "Llueve, día de tortas fritas",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Está para quedarse tirado",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Agarrá el paraguas, no seas gil",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Garúa, finito pero molesta",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "El bondi no viene más con esta agua",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Se inundan las calles, ojo al charco",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "thunderstorm",
+      "label": "Thunderstorm",
+      "condition": {
+        "weather": "thunderstorm"
+      },
+      "priority": 2,
+      "phrases": [
+        {
+          "text": "Se viene la tormenta, guardá todo",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Truenos, desenchufá la tele",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Diluvio universal, ni asomes",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Se cae el cielo a pedazos, posta",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Alta tormenta, guardá el coche ya",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "id": "snow",
+      "label": "Snow",
+      "condition": {
+        "weather": "snow"
+      },
+      "priority": 2,
+      "phrases": [
+        {
+          "text": "¡Nieva, loco! Esto no es normal",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Cayó nieve, sacá la foto",
+          "source": "manual",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Mirá si nieva en la 9 de Julio, che",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        },
+        {
+          "text": "Cayó alto copito, caos en la ciudad",
+          "source": "ai",
+          "addedAt": "2026-11-23"
+        }
+      ]
+    }
+  ]
+}

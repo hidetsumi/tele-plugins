@@ -1,0 +1,31 @@
+name: New phrase
+description: Add a phrase to the TV's weather widget
+title: "New phrase"
+labels: ["phrase"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: When the phrase is shown (feels-like temperature, or rain, thunderstorm or snow).
+      options:
+        - "Feels like 35 °C or more"
+        - "Feels like 30–34 °C"
+        - "Feels like 25–29 °C"
+        - "Feels like 19–24 °C"
+        - "Feels like 13–18 °C"
+        - "Feels like 7–12 °C"
+        - "Feels like 6 °C or less"
+        - "Rain or drizzle"
+        - "Thunderstorm"
+        - "Snow"
+    validations:
+      required: true
+  - type: input
+    id: phrase
+    attributes:
+      label: Phrase
+      description: Up to 40 characters. It follows the temperature, as in "30° Hace un re lorca".
+      placeholder: Hace un re lorca
+    validations:
+      required: true
