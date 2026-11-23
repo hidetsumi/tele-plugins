@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main   # the latest main, not the commit the event fired on
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -37,4 +39,5 @@ jobs:
           git add phrases/phrases.json
           if git diff --cached --quiet; then echo "No new phrases."; exit 0; fi
           git commit -m "phrases: add AI-generated phrases"
+          git pull --rebase origin main
           git push
