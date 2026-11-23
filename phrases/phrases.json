@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-11-23T19:50:39Z",
+  "updatedAt": "2026-11-23T19:51:38Z",
   "categories": [
     {
       "id": "extreme_heat",
@@ -87,11 +87,6 @@
         {
           "text": "Está para pelar la pelopincho",
           "source": "ai",
-          "addedAt": "2026-11-23"
-        },
-        {
-          "text": "Prueba: el sol te cocina el mate",
-          "source": "manual",
           "addedAt": "2026-11-23"
         }
       ]
