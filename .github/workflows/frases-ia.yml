@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write   # to commit frases/frases.json
-  models: read      # GitHub Models, free with the workflow's own token
 
 concurrency:
   group: frases
@@ -26,9 +25,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Pedir frases a GitHub Models
+      - name: Pedir frases a Gemini
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NUEVAS_POR_RANGO: ${{ inputs.nuevas_por_rango || '2' }}
         run: python scripts/generar_frases.py
       - name: Guardar cambios

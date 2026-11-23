@@ -21,9 +21,9 @@ Solo se aplican las frases que manda el dueño del repo. También se puede edita
 
 ## Frases con IA
 
-Todos los lunes, la Action **Frases nuevas con IA** le pide frases nuevas a
-[GitHub Models](https://docs.github.com/en/github-models) (gratis, con el token propio de la Action) y las agrega
-solas, marcadas `"origen": "ia"`. Cuando un rango pasa las 40 frases, se borran las de IA más viejas; las
+Todos los lunes, la Action **Frases nuevas con IA** le pide frases nuevas a Google Gemini (nivel gratuito) y
+las agrega solas, marcadas `"origen": "ia"`. Necesita una clave gratis de [Google AI Studio](https://aistudio.google.com/apikey)
+guardada como secreto `GEMINI_API_KEY` (Settings → Secrets and variables → Actions); sin ella, la Action no hace nada. Cuando un rango pasa las 40 frases, se borran las de IA más viejas; las
 escritas a mano nunca se borran. Se puede correr a mano desde **Actions → Frases nuevas con IA → Run workflow**.
 
 ## Licencia
