@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -50,10 +51,10 @@ def llamar(clave, ruta, cuerpo=None):
         return json.loads(r.read().decode())
 
 
-def elegir_modelo(clave):
-    """MODELO if set; else the newest stable flash model this key can call (names change as Google releases)."""
+def modelos(clave):
+    """MODELO if set; else the stable flash models this key can call, newest first (names change as Google releases)."""
     if os.environ.get("MODELO"):
-        return os.environ["MODELO"]
+        return [os.environ["MODELO"]]
     candidatos = []
     for m in llamar(clave, "models?pageSize=200").get("models", []):
         nombre = m.get("name", "").removeprefix("models/")
@@ -66,7 +67,27 @@ def elegir_modelo(clave):
             candidatos.append((float(version.group(1)), nombre))
     if not candidatos:
         raise RuntimeError("no hay ningún modelo flash disponible para esta clave")
-    return max(candidatos)[1]
+    return [nombre for _, nombre in sorted(candidatos, reverse=True)]
+
+
+TRANSITORIOS = {429, 500, 502, 503, 504}
+
+
+def preguntar_con_reintentos(clave, data):
+    """Busy or rate-limited models are common on the free tier: retry, then try the next flash model."""
+    ultimo = None
+    for modelo in modelos(clave)[:3]:
+        for espera in (0, 15, 45):
+            time.sleep(espera)
+            try:
+                print(f"Modelo: {modelo}")
+                return preguntar(clave, modelo, data)
+            except urllib.error.HTTPError as e:
+                if e.code not in TRANSITORIOS:
+                    raise
+                ultimo = e
+                print(f"  {modelo} respondió {e.code}, reintento")
+    raise ultimo
 
 
 def preguntar(clave, modelo, data):
@@ -90,13 +111,11 @@ def main():
         return 0
     data = frases.cargar()
     try:
-        modelo = elegir_modelo(clave)
-        print(f"Modelo: {modelo}")
-        nuevas = preguntar(clave, modelo, data)
+        nuevas = preguntar_con_reintentos(clave, data)
     except urllib.error.HTTPError as e:
         detalle = e.read().decode(errors="replace")[:300]
-        if e.code == 429:
-            print(f"Límite gratis de Gemini alcanzado; se reintenta la próxima vez. {detalle}")
+        if e.code in TRANSITORIOS:
+            print(f"Gemini está saturado o sin cupo gratis ({e.code}); se reintenta la próxima vez. {detalle}")
             return 0
         print(f"Gemini respondió {e.code}: {detalle}")
         return 1
