@@ -52,8 +52,13 @@ def preguntar(token, data):
         "Accept": "application/vnd.github+json",
     })
     with urllib.request.urlopen(req, timeout=120) as r:
-        respuesta = json.loads(r.read().decode())
-    return json.loads(respuesta["choices"][0]["message"]["content"])["frases"]
+        crudo = r.read().decode(errors="replace")
+    try:
+        respuesta = json.loads(crudo)
+        return json.loads(respuesta["choices"][0]["message"]["content"])["frases"]
+    except (KeyError, IndexError, json.JSONDecodeError, TypeError):
+        print(f"Respuesta recibida: {crudo[:500]}")
+        raise
 
 
 def main():
