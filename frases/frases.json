@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "rangos": {
+    "35° o más": [
+      {
+        "texto": "Te derretís como helado en la vereda",
+        "origen": "manual"
+      },
+      {
+        "texto": "Un infierno, hermano",
+        "origen": "manual"
+      },
+      {
+        "texto": "Calor de locos, ni salgas",
+        "origen": "manual"
+      },
+      {
+        "texto": "Hace un calor que mata",
+        "origen": "manual"
+      }
+    ],
+    "30° a 34°": [
+      {
+        "texto": "Hace un re lorca",
+        "origen": "manual"
+      },
+      {
+        "texto": "Lorca total, prendé el aire",
+        "origen": "manual"
+      },
+      {
+        "texto": "Pegajoso mal, ni te muevas",
+        "origen": "manual"
+      },
+      {
+        "texto": "Calor heavy, birra urgente",
+        "origen": "manual"
+      }
+    ],
+    "25° a 29°": [
+      {
+        "texto": "Lindo calorcito, está para pileta",
+        "origen": "manual"
+      },
+      {
+        "texto": "Remerita y a la calle",
+        "origen": "manual"
+      },
+      {
+        "texto": "Está para una birra en la vereda",
+        "origen": "manual"
+      },
+      {
+        "texto": "Calorcito rico, che",
+        "origen": "manual"
+      }
+    ],
+    "19° a 24°": [
+      {
+        "texto": "Está joya, ni frío ni calor",
+        "origen": "manual"
+      },
+      {
+        "texto": "Clima de mate en la plaza",
+        "origen": "manual"
+      },
+      {
+        "texto": "Un día bárbaro, ni te quejes",
+        "origen": "manual"
+      },
+      {
+        "texto": "Ideal, aprovechá",
+        "origen": "manual"
+      }
+    ],
+    "13° a 18°": [
+      {
+        "texto": "Fresquito, llevate un buzo",
+        "origen": "manual"
+      },
+      {
+        "texto": "Está para camperita liviana",
+        "origen": "manual"
+      },
+      {
+        "texto": "Fresco pero se banca",
+        "origen": "manual"
+      },
+      {
+        "texto": "Refresca, no te hagas el canchero",
+        "origen": "manual"
+      }
+    ],
+    "7° a 12°": [
+      {
+        "texto": "Hace frío, che",
+        "origen": "manual"
+      },
+      {
+        "texto": "Está para guiso y frazada",
+        "origen": "manual"
+      },
+      {
+        "texto": "Re fresco, abrigate bien",
+        "origen": "manual"
+      },
+      {
+        "texto": "Frío de cuarta, mate caliente ya",
+        "origen": "manual"
+      }
+    ],
+    "6° o menos": [
+      {
+        "texto": "Un frío que te parte al medio",
+        "origen": "manual"
+      },
+      {
+        "texto": "Pingüino total, abrigate",
+        "origen": "manual"
+      },
+      {
+        "texto": "Frío de morirse, no salgas",
+        "origen": "manual"
+      },
+      {
+        "texto": "Helado mal, sacá la estufa",
+        "origen": "manual"
+      }
+    ],
+    "Lluvia": [
+      {
+        "texto": "Llueve, día de tortas fritas",
+        "origen": "manual"
+      },
+      {
+        "texto": "Está para quedarse tirado",
+        "origen": "manual"
+      },
+      {
+        "texto": "Agarrá el paraguas, no seas gil",
+        "origen": "manual"
+      },
+      {
+        "texto": "Garúa, finito pero molesta",
+        "origen": "manual"
+      }
+    ],
+    "Tormenta": [
+      {
+        "texto": "Se viene la tormenta, guardá todo",
+        "origen": "manual"
+      },
+      {
+        "texto": "Truenos, desenchufá la tele",
+        "origen": "manual"
+      },
+      {
+        "texto": "Diluvio universal, ni asomes",
+        "origen": "manual"
+      }
+    ],
+    "Nieve": [
+      {
+        "texto": "¡Nieva, loco! Esto no es normal",
+        "origen": "manual"
+      },
+      {
+        "texto": "Cayó nieve, sacá la foto",
+        "origen": "manual"
+      }
+    ]
+  }
+}

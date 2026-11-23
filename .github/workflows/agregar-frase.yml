@@ -1,0 +1,48 @@
+name: Agregar frase
+
+# The "Nueva frase" issue form. Only the repository owner's issues are applied; anyone else's are left alone.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: frases
+  cancel-in-progress: false
+
+jobs:
+  agregar:
+    if: contains(github.event.issue.labels.*.name, 'frase') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Agregar la frase
+        id: frase
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set +e
+          python scripts/agregar_frase.py > resultado.txt
+          echo "ok=$?" >> "$GITHUB_OUTPUT"
+          cat resultado.txt
+      - name: Guardar cambios
+        if: steps.frase.outputs.ok == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frases/frases.json
+          git commit -m "frases: agregar frase (#${{ github.event.issue.number }})"
+          git push
+      - name: Responder y cerrar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMERO: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body-file resultado.txt
+          gh issue close "$NUMERO" --repo "$GITHUB_REPOSITORY"

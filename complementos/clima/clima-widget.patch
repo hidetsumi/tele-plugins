@@ -1,0 +1,331 @@
+diff --git a/addons/weather/app/src/main/AndroidManifest.xml b/addons/weather/app/src/main/AndroidManifest.xml
+index f713c336..747e221f 100644
+--- a/addons/weather/app/src/main/AndroidManifest.xml
++++ b/addons/weather/app/src/main/AndroidManifest.xml
+@@ -6,6 +6,10 @@
+ 
+     <!-- The only permission: Open-Meteo, for the place search, the weather and the air quality. -->
+     <uses-permission android:name="android.permission.INTERNET" />
++    <!-- Home screen widget: the 30-minute refresh job survives a reboot. -->
++    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++    <!-- Home screen widget: JobScheduler asks for it to wait for the network before the refresh. -->
++    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+ 
+     <application
+         android:allowBackup="false"
+@@ -30,5 +34,16 @@
+             </intent-filter>
+             <meta-data android:name="com.gathin.tvhome.card" android:resource="@xml/module_card" />
+         </activity>
++
++        <!-- Home screen widget: the last reading, read-only, for the launcher (which has no internet). -->
++        <provider
++            android:name=".WidgetProvider"
++            android:authorities="io.github.sumyabazar1.weather.widget"
++            android:exported="true" />
++
++        <service
++            android:name=".RefreshJob"
++            android:exported="false"
++            android:permission="android.permission.BIND_JOB_SERVICE" />
+     </application>
+ </manifest>
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
+new file mode 100644
+index 00000000..aa1fc6cb
+--- /dev/null
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/Phrases.java
+@@ -0,0 +1,82 @@
++package io.github.sumyabazar1.weather;
++
++import android.content.Context;
++import android.content.SharedPreferences;
++
++import org.json.JSONArray;
++import org.json.JSONObject;
++
++import java.io.ByteArrayOutputStream;
++import java.io.InputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.nio.charset.StandardCharsets;
++import java.util.Calendar;
++
++/**
++ * The home screen widget's phrases ("30° Hace un re lorca"), kept in a public GitHub repository so new ones arrive
++ * without touching the TV. Downloaded with each weather refresh; the last good copy is kept, and when there has never
++ * been one the launcher uses its own built-in phrases.
++ */
++final class Phrases {
++    static final String URL_FRASES =
++            "https://raw.githubusercontent.com/hidetsumi/tele-plugins/main/frases/frases.json";
++    private static final int TIMEOUT_MS = 8_000;
++
++    private Phrases() { }
++
++    /** Downloads the list and keeps it when it parses. Never throws: a failed download keeps the last copy. */
++    static void refresh(Context c) {
++        try {
++            HttpURLConnection conn = (HttpURLConnection) new URL(URL_FRASES).openConnection();
++            conn.setConnectTimeout(TIMEOUT_MS);
++            conn.setReadTimeout(TIMEOUT_MS);
++            conn.setUseCaches(false);
++            try (InputStream in = conn.getInputStream()) {
++                ByteArrayOutputStream out = new ByteArrayOutputStream();
++                byte[] buf = new byte[8192];
++                for (int n; (n = in.read(buf)) != -1; ) {
++                    out.write(buf, 0, n);
++                    if (out.size() > 512 * 1024) return;   // not what we expect; keep the last copy
++                }
++                String json = new String(out.toByteArray(), StandardCharsets.UTF_8);
++                new JSONObject(json).getJSONObject("rangos");   // parses, or throws and keeps the old copy
++                WidgetData.prefs(c).edit().putString("frases", json).apply();
++            } finally {
++                conn.disconnect();
++            }
++        } catch (Exception ignored) {
++            // offline, GitHub down or a broken file: the last copy stays
++        }
++    }
++
++    /** The range a reading falls in, by the same rules as the launcher's built-in phrases. */
++    static String range(int feelsC, int code) {
++        if (code >= 95) return "Tormenta";
++        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "Nieve";
++        if (code >= 51) return "Lluvia";
++        if (feelsC >= 35) return "35° o más";
++        if (feelsC >= 30) return "30° a 34°";
++        if (feelsC >= 25) return "25° a 29°";
++        if (feelsC >= 19) return "19° a 24°";
++        if (feelsC >= 13) return "13° a 18°";
++        if (feelsC >= 7) return "7° a 12°";
++        return "6° o menos";
++    }
++
++    /** One phrase from the downloaded list for this reading, the same one for the whole hour; null when none. */
++    static String pick(SharedPreferences widget, int feelsC, int code) {
++        String json = widget.getString("frases", null);
++        if (json == null) return null;
++        try {
++            JSONArray list = new JSONObject(json).getJSONObject("rangos").optJSONArray(range(feelsC, code));
++            if (list == null || list.length() == 0) return null;
++            Calendar now = Calendar.getInstance();
++            int at = (now.get(Calendar.DAY_OF_YEAR) * 24 + now.get(Calendar.HOUR_OF_DAY)) % list.length();
++            String text = list.getJSONObject(at).optString("texto", "").trim();
++            return text.isEmpty() ? null : text;
++        } catch (Exception e) {
++            return null;
++        }
++    }
++}
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java
+new file mode 100644
+index 00000000..87e6bc6b
+--- /dev/null
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/RefreshJob.java
+@@ -0,0 +1,38 @@
++package io.github.sumyabazar1.weather;
++
++import android.app.job.JobParameters;
++import android.app.job.JobService;
++import android.content.SharedPreferences;
++
++/** Fetches the weather now for the home screen widget; the forecast days are not needed for it. */
++public final class RefreshJob extends JobService {
++    private volatile Thread worker;
++
++    @Override
++    public boolean onStartJob(JobParameters params) {
++        SharedPreferences place = getSharedPreferences("place", MODE_PRIVATE);
++        if (!place.contains("name")) return false;
++        double lat = Double.longBitsToDouble(place.getLong("lat", 0));
++        double lon = Double.longBitsToDouble(place.getLong("lon", 0));
++        worker = new Thread(() -> {
++            boolean ok = false;
++            Phrases.refresh(this);
++            try {
++                WidgetData.save(this, Forecast.fetch(lat, lon, Forecast.MIN_DAYS));
++                ok = true;
++            } catch (Exception ignored) {
++                // offline or the service is down: try again later
++            }
++            jobFinished(params, !ok);
++        }, "weather-widget");
++        worker.start();
++        return true;
++    }
++
++    @Override
++    public boolean onStopJob(JobParameters params) {
++        Thread t = worker;
++        if (t != null) t.interrupt();
++        return true;
++    }
++}
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
+index 81b8cdc3..1f36bedf 100644
+--- a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WeatherActivity.java
+@@ -112,10 +112,13 @@ public final class WeatherActivity extends Activity {
+             } catch (Exception e) {
+                 report = null;
+             }
++            Phrases.refresh(this);
+             Forecast.Report result = report;
+             main.post(() -> {
+                 if (isDestroyed() || !resumed || request != requestId) return;
+                 if (result != null) {
++                    WidgetData.save(this, result);
++                    WidgetData.schedule(this);
+                     lastReport = result;
+                     updatedAt = new Date();
+                     show(result);
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java
+new file mode 100644
+index 00000000..fe4f5c80
+--- /dev/null
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetData.java
+@@ -0,0 +1,69 @@
++package io.github.sumyabazar1.weather;
++
++import android.app.job.JobInfo;
++import android.app.job.JobScheduler;
++import android.content.ComponentName;
++import android.content.Context;
++import android.content.SharedPreferences;
++import android.net.Uri;
++
++/**
++ * The last reading, kept for the home screen's weather widget: the launcher has no internet permission, so this app
++ * fetches and the launcher only reads what is stored here through {@link WidgetProvider}.
++ */
++final class WidgetData {
++    static final String AUTHORITY = "io.github.sumyabazar1.weather.widget";
++    static final Uri URI = Uri.parse("content://" + AUTHORITY + "/current");
++    private static final String PREFS = "widget";
++    private static final int JOB_PERIODIC = 1, JOB_NOW = 2;
++
++    private WidgetData() { }
++
++    static SharedPreferences prefs(Context c) {
++        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
++    }
++
++    /** Stores a fresh reading and tells the launcher. */
++    static void save(Context c, Forecast.Report r) {
++        prefs(c).edit()
++                .putLong("tempC", Double.doubleToRawLongBits(r.tempC))
++                .putLong("feelsC", Double.doubleToRawLongBits(r.feelsC))
++                .putInt("code", r.code)
++                .putBoolean("day", r.day)
++                .putLong("updated", System.currentTimeMillis())
++                .apply();
++        c.getContentResolver().notifyChange(URI, null);
++    }
++
++    static boolean stale(Context c) {
++        return System.currentTimeMillis() - prefs(c).getLong("updated", 0) > Forecast.REFRESH_MS;
++    }
++
++    /** A refresh every 30 minutes while the network is up, kept across reboots. */
++    static void schedule(Context c) {
++        try {
++            JobScheduler js = c.getSystemService(JobScheduler.class);
++            if (js == null || js.getPendingJob(JOB_PERIODIC) != null) return;
++            js.schedule(new JobInfo.Builder(JOB_PERIODIC, new ComponentName(c, RefreshJob.class))
++                    .setPeriodic(Forecast.REFRESH_MS)
++                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
++                    .setPersisted(true)
++                    .build());
++        } catch (RuntimeException ignored) {
++            // the widget stays on its last reading; the page itself still works
++        }
++    }
++
++    /** One refresh as soon as the network allows, when the stored reading is old. */
++    static void refreshSoon(Context c) {
++        try {
++            JobScheduler js = c.getSystemService(JobScheduler.class);
++            if (js == null || js.getPendingJob(JOB_NOW) != null) return;
++            js.schedule(new JobInfo.Builder(JOB_NOW, new ComponentName(c, RefreshJob.class))
++                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
++                    .build());
++        } catch (RuntimeException ignored) {
++            // as above
++        }
++    }
++}
+diff --git a/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
+new file mode 100644
+index 00000000..ad76000b
+--- /dev/null
++++ b/addons/weather/app/src/main/java/io/github/sumyabazar1/weather/WidgetProvider.java
+@@ -0,0 +1,68 @@
++package io.github.sumyabazar1.weather;
++
++import android.content.ContentProvider;
++import android.content.ContentValues;
++import android.content.Context;
++import android.content.SharedPreferences;
++import android.database.Cursor;
++import android.database.MatrixCursor;
++import android.net.Uri;
++
++/**
++ * Read-only: the stored reading for the launcher's home screen widget, in the unit and language the owner chose here.
++ * Columns: temp (whole degrees), unit ("C" or "F"), sky (words), code (WMO), day (1 or 0), place, updated (ms),
++ * feels (whole degrees, the feels-like temperature), phrase (from the downloaded list in {@link Phrases}, or null).
++ * Empty while no city is chosen or nothing has been fetched yet.
++ */
++public final class WidgetProvider extends ContentProvider {
++    private static final String[] COLUMNS = {"temp", "unit", "sky", "code", "day", "place", "updated", "feels", "phrase"};
++
++    @Override
++    public boolean onCreate() {
++        return true;
++    }
++
++    @Override
++    public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
++        Context c = getContext();
++        MatrixCursor cursor = new MatrixCursor(COLUMNS, 1);
++        if (c == null) return cursor;
++        WidgetData.schedule(c);
++        SharedPreferences place = c.getSharedPreferences("place", Context.MODE_PRIVATE);
++        if (!place.contains("name")) return cursor;
++        if (WidgetData.stale(c)) WidgetData.refreshSoon(c);
++        SharedPreferences w = WidgetData.prefs(c);
++        if (!w.contains("updated")) return cursor;
++        boolean f = c.getSharedPreferences("options", Context.MODE_PRIVATE).getBoolean("fahrenheit",
++                "f".equalsIgnoreCase(c.getString(R.string.temperature_unit).trim()));
++        double tempC = Double.longBitsToDouble(w.getLong("tempC", 0));
++        int code = w.getInt("code", 3);
++        boolean day = w.getBoolean("day", true);
++        double feelsC = Double.longBitsToDouble(w.getLong("feelsC", w.getLong("tempC", 0)));
++        cursor.addRow(new Object[]{Forecast.degrees(tempC, f), f ? "F" : "C", c.getString(Forecast.sky(code, day)),
++                code, day ? 1 : 0, place.getString("name", ""), w.getLong("updated", 0),
++                Forecast.degrees(feelsC, f), Phrases.pick(w, (int) Math.round(feelsC), code)});
++        cursor.setNotificationUri(c.getContentResolver(), WidgetData.URI);
++        return cursor;
++    }
++
++    @Override
++    public String getType(Uri uri) {
++        return "vnd.android.cursor.item/vnd.weather.current";
++    }
++
++    @Override
++    public Uri insert(Uri uri, ContentValues values) {
++        throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public int delete(Uri uri, String selection, String[] args) {
++        throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public int update(Uri uri, ContentValues values, String selection, String[] args) {
++        throw new UnsupportedOperationException();
++    }
++}

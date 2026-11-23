@@ -1,0 +1,6 @@
+__pycache__/
+*.keystore
+*.jks
+*.apk
+build/
+.DS_Store
